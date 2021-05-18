@@ -9,8 +9,8 @@ const jsonParser = express.json()
 //filter out the response to avoid showing broken data
 const serializeWorkout = workout => ({
     id: workout.id,
-     user_id:workout.user_id,
-    videoid:workout.videoid,
+    user_id: workout.user_id,
+    video_id: workout.video_id,
     title: xss(workout.title),
     thumbnail: xss(workout.thumbnail),
     description: xss(workout.description)
@@ -35,19 +35,19 @@ workoutRouter
         //take the input from the user
         const {
             user_id,
-            videoid,
+            video_id,
             title,
             thumbnail,
             description
         } = req.body
         const newWorkout = {
             user_id,
-            videoid,
+            video_id,
             title,
             thumbnail,
             description
         }
-console.log(newWorkout)
+        // console.log(newWorkout)
         //validate the input
         for (const [key, value] of Object.entries(newWorkout)) {
             if (value == null) {
@@ -67,10 +67,10 @@ console.log(newWorkout)
             )
             .then(workout => {
                 res
-                //display the 201 status code
+                    //display the 201 status code
                     .status(201)
                     //redirect the request to the original url adding the workout id for editing
-                    .location(path.posix.join(req.originalUrl, `/${workout.id}`))
+                    // .location(path.posix.join(req.originalUrl, `/${workout.id}`))
                     //return the serialized results
                     .json(serializeWorkout(workout))
             })
@@ -119,16 +119,22 @@ workoutRouter
 
         //take the input from the user
         const {
+            user_id,
+            video_id,
             title,
-            completed
+            thumbnail,
+            description
         } = req.body
-        const workoutToUpdate = {
+        const updatedWorkout = {
+            user_id,
+            video_id,
             title,
-            completed
+            thumbnail,
+            description
         }
 
         //validate the input by checking the length of the workoutToUpdate object to make sure that we have all the values
-        const numberOfValues = Object.values(workoutToUpdate).filter(Boolean).length
+        const numberOfValues = Object.values(updatedWorkout).filter(Boolean).length
         if (numberOfValues === 0) {
             //if there is an error show it
             return res.status(400).json({
@@ -142,7 +148,7 @@ workoutRouter
         workoutService.updateWorkout(
                 req.app.get('db'),
                 req.params.workout_id,
-                workoutToUpdate
+                updatedWorkout
             )
             .then(updatedWorkout => {
 
@@ -165,5 +171,41 @@ workoutRouter
             .catch(next)
     })
 
+workoutRouter
+    .route('/user/:user_id')
+    .all((req, res, next) => {
+        if (isNaN(parseInt(req.params.user_id))) {
+            //if there is an error show it
+            return res.status(404).json({
+                error: {
+                    message: `Invalid id`
+                }
+            })
+        }
+
+        //connect to the service to get the data
+        workoutService.getWorkoutByUserId(
+                req.app.get('db'),
+                req.params.user_id
+            )
+            .then(workout => {
+                if (!workout) {
+                    //if there is an error show it
+                    return res.status(404).json({
+                        error: {
+                            message: `workout doesn't exist`
+                        }
+                    })
+                }
+                res.workout = workout
+                next()
+            })
+            .catch(next)
+    })
+    .get((req, res, next) => {
+
+        //get each one of the objects from the results and serialize them
+        res.json(res.workout.map(serializeWorkout))
+    })
 
 module.exports = workoutRouter

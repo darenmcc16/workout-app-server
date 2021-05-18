@@ -9,11 +9,18 @@ const workoutService = {
         return db
             .select('*')
             .from('workouts')
-            .where('workout.id', workout_id)
+            .where('workouts.id', workout_id)
             .first()
+    },
+    getWorkoutByUserId(db, user_id) {
+        return db
+            .select('*')
+            .from('workouts')
+            .where('workouts.user_id', user_id)
     },
     //relevant
     insertWorkout(db, newWorkout) {
+        console.log(newWorkout)
         return db
             .insert(newWorkout)
             .into('workouts')
